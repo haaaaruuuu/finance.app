@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💰 マルチウォレット収支管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .wallet-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s ease;
+    }
+    .wallet-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .cash-card { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .wallet-card.wallet { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .app-card { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .ic-card { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    
+    .transaction-card {
+      transition: all 0.2s ease;
+      border-left: 4px solid transparent;
+    }
+    .transaction-card:hover {
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .transaction-income { border-left-color: #10b981; }
+    .transaction-expense { border-left-color: #ef4444; }
+    .transaction-transfer { border-left-color: #3b82f6; }
+    
+    .form-input {
+      transition: all 0.2s ease;
+      border: 2px solid #e5e7eb;
+    }
+    .form-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="container mx-auto max-w-6xl p-6">
+    <!-- ヘッダー -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">💰 マルチウォレット収支管理</h1>
+      <p class="text-gray-600">現金・財布・アプリ・交通系ICを一括管理</p>
+    </div>
+    
+    <!-- ウォレット残高カード -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="wallet-card cash-card text-white p-6 rounded-xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold flex items-center">
+            <span class="text-2xl mr-2">💵</span>現金
+          </h3>
+          <button onclick="openEditModal('現金')" class="text-white hover:text-gray-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-3xl font-bold" id="cash-balance">¥0</p>
+        <p class="text-sm opacity-80 mt-2">手元の現金</p>
+      </div>
+      
+      <div class="wallet-card wallet text-white p-6 rounded-xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold flex items-center">
+            <span class="text-2xl mr-2">👛</span>財布
+          </h3>
+          <button onclick="openEditModal('財布')" class="text-white hover:text-gray-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-3xl font-bold" id="wallet-balance">¥0</p>
+        <p class="text-sm opacity-80 mt-2">財布の中身</p>
+      </div>
+      
+      <div class="wallet-card app-card text-white p-6 rounded-xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold flex items-center">
+            <span class="text-2xl mr-2">📱</span>アプリ
+          </h3>
+          <button onclick="openEditModal('アプリ')" class="text-white hover:text-gray-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-3xl font-bold" id="app-balance">¥0</p>
+        <p class="text-sm opacity-80 mt-2">決済アプリ残高</p>
+      </div>
+      
+      <div class="wallet-card ic-card text-white p-6 rounded-xl shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold flex items-center">
+            <span class="text-2xl mr-2">🚇</span>交通系IC
+          </h3>
+          <button onclick="openEditModal('交通系IC')" class="text-white hover:text-gray-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-3xl font-bold" id="ic-balance">¥0</p>
+        <p class="text-sm opacity-80 mt-2">Suica・PASMO等</p>
+      </div>
+    </div>
+    
+    <!-- 統計サマリー -->
+    <div class="stats-card p-6 rounded-xl shadow-lg mb-8">
+      <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <span class="text-2xl mr-2">📊</span>財務サマリー
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="text-center">
+          <p class="text-sm text-gray-600 mb-1">総残高</p>
+          <p class="text-2xl font-bold text-blue-600" id="total-balance">¥0</p>
+        </div>
+        <div class="text-center">
+          <p class="text-sm text-gray-600 mb-1">今月の収入</p>
+          <p class="text-2xl font-bold text-green-500" id="total-income">¥0</p>
+        </div>
+        <div class="text-center">
+          <p class="text-sm text-gray-600 mb-1">今月の支出</p>
+          <p class="text-2xl font-bold text-red-500" id="total-expense">¥0</p>
+        </div>
+        <div class="text-center">
+          <p class="text-sm text-gray-600 mb-1">収支</p>
+          <p class="text-2xl font-bold text-purple-600" id="net-balance">¥0</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 取引追加フォーム -->
+    <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+        <span class="text-2xl mr-2">➕</span>新しい取引を追加
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📅 日付</label>
+          <input type="date" id="date-input" class="form-input w-full p-3 rounded-lg outline-none">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">💰 金額（円）</label>
+          <input type="number" id="amount-input" class="form-input w-full p-3 rounded-lg outline-none" min="1" placeholder="1000">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">📝 説明 <span class="text-gray-400 text-xs">(任意)</span></label>
+          <input type="text" id="description-input" class="form-input w-full p-3 rounded-lg outline-none" placeholder="コンビニで買い物 (空欄可)">
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">🔄 取引タイプ</label>
+          <select id="type-select" class="form-input w-full p-3 rounded-lg outline-none" onchange="toggleTransferFields()">
+            <option value="expense">💸 支出</option>
+            <option value="income">💵 収入</option>
+            <option value="transfer">🔄 ウォレット間送金</option>
+          </select>
+        </div>
+        
+        <div id="category-field">
+          <label class="block text-sm font-medium text-gray-700 mb-2">🏷️ カテゴリー</label>
+          <select id="category-select" class="form-input w-full p-3 rounded-lg outline-none">
+            <option value="食費">🍽️ 食費</option>
+            <option value="住居費">🏠 住居費</option>
+            <option value="交通費">🚌 交通費</option>
+            <option value="光熱費">💡 光熱費</option>
+            <option value="通信費">📞 通信費</option>
+            <option value="娯楽費">🎮 娯楽費</option>
+            <option value="医療費">🏥 医療費</option>
+            <option value="その他支出">📦 その他支出</option>
+          </select>
+        </div>
+        
+        <div id="wallet-field">
+          <label class="block text-sm font-medium text-gray-700 mb-2">👛 ウォレット</label>
+          <select id="wallet-select" class="form-input w-full p-3 rounded-lg outline-none">
+            <option value="現金">💵 現金</option>
+            <option value="財布">👛 財布</option>
+            <option value="アプリ">📱 アプリ</option>
+            <option value="交通系IC">🚇 交通系IC</option>
+          </select>
+        </div>
+        
+        <div id="transfer-from-field" style="display: none;">
+          <label class="block text-sm font-medium text-gray-700 mb-2">📤 送金元</label>
+          <select id="transfer-from-select" class="form-input w-full p-3 rounded-lg outline-none" onchange="updateTransferToOptions()">
+            <option value="現金">💵 現金</option>
+            <option value="財布">👛 財布</option>
+            <option value="アプリ">📱 アプリ</option>
+            <option value="交通系IC">🚇 交通系IC</option>
+          </select>
+        </div>
+        
+        <div id="transfer-to-field" style="display: none;">
+          <label class="block text-sm font-medium text-gray-700 mb-2">📥 送金先</label>
+          <select id="transfer-to-select" class="form-input w-full p-3 rounded-lg outline-none">
+            <option value="財布">👛 財布</option>
+            <option value="アプリ">📱 アプリ</option>
+            <option value="交通系IC">🚇 交通系IC</option>
+          </select>
+        </div>
+      </div>
+      
+      <button onclick="addTransaction()" class="btn-primary w-full py-3 px-6 text-white font-medium rounded-lg outline-none">
+        ✨ 取引を追加
+      </button>
+    </div>
+    
+    <!-- 取引履歴 -->
+    <div class="bg-white p-6 rounded-xl shadow-lg">
+      <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800 mb-4 md:mb-0 flex items-center">
+          <span class="text-2xl mr-2">📋</span>取引履歴
+        </h3>
+        
+        <div class="flex space-x-3">
+          <select id="filter-type" class="form-input p-2 rounded-lg text-sm outline-none" onchange="filterTransactions()">
+            <option value="all">すべてのタイプ</option>
+            <option value="income">💵 収入のみ</option>
+            <option value="expense">💸 支出のみ</option>
+            <option value="transfer">🔄 送金のみ</option>
+          </select>
+          
+          <select id="filter-wallet" class="form-input p-2 rounded-lg text-sm outline-none" onchange="filterTransactions()">
+            <option value="all">すべてのウォレット</option>
+            <option value="現金">💵 現金</option>
+            <option value="財布">👛 財布</option>
+            <option value="アプリ">📱 アプリ</option>
+            <option value="交通系IC">🚇 交通系IC</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="transactions-list" class="space-y-3">
+        <div class="text-center text-gray-500 py-8">
+          <span class="text-4xl">📝</span>
+          <p class="mt-2">取引データがありません</p>
+          <p class="text-sm">上のフォームから取引を追加してください</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 残高編集モーダル -->
+  <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-xl max-w-md w-full mx-4">
+      <h3 class="text-lg font-bold text-gray-800 mb-4" id="modal-title">残高を編集</h3>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">新しい残高（円）</label>
+        <input type="number" id="modal-balance-input" class="form-input w-full p-3 rounded-lg outline-none">
+      </div>
+      <div class="flex space-x-3">
+        <button onclick="closeEditModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+          キャンセル
+        </button>
+        <button onclick="updateBalance()" class="flex-1 btn-primary text-white py-2 px-4 rounded-lg">
+          更新
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let wallets = { 現金: 0, 財布: 0, アプリ: 0, 交通系IC: 0 };
+    let transactions = [];
+    let currentEditWallet = '';
+    
+    // アイコンマッピング
+    const walletIcons = {
+      '現金': '💵',
+      '財布': '👛', 
+      'アプリ': '📱',
+      '交通系IC': '🚇'
+    };
+    
+    const categoryIcons = {
+      '食費': '🍽️', '住居費': '🏠', '交通費': '🚌', '光熱費': '💡',
+      '通信費': '📞', '娯楽費': '🎮', '医療費': '🏥', 'その他支出': '📦',
+      '給料': '💼', 'ボーナス': '🎁', 'その他収入': '💰', '送金': '🔄'
+    };
+    
+    // データ読み込み・保存
+    function loadData() {
+      const savedWallets = localStorage.getItem('wallets');
+      const savedTransactions = localStorage.getItem('transactions');
+      
+      if (savedWallets) wallets = JSON.parse(savedWallets);
+      if (savedTransactions) transactions = JSON.parse(savedTransactions);
+      
+      updateDisplay();
+    }
+    
+    function saveData() {
+      localStorage.setItem('wallets', JSON.stringify(wallets));
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+    }
+    
+    // 表示更新
+    function updateDisplay() {
+      // ウォレット残高更新
+      document.getElementById('cash-balance').textContent = '¥' + wallets['現金'].toLocaleString();
+      document.getElementById('wallet-balance').textContent = '¥' + wallets['財布'].toLocaleString();
+      document.getElementById('app-balance').textContent = '¥' + wallets['アプリ'].toLocaleString();
+      document.getElementById('ic-balance').textContent = '¥' + wallets['交通系IC'].toLocaleString();
+      
+      // 統計更新
+      const totalBalance = Object.values(wallets).reduce((sum, balance) => sum + balance, 0);
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      
+      document.getElementById('total-balance').textContent = '¥' + totalBalance.toLocaleString();
+      document.getElementById('total-income').textContent = '¥' + totalIncome.toLocaleString();
+      document.getElementById('total-expense').textContent = '¥' + totalExpense.toLocaleString();
+      document.getElementById('net-balance').textContent = '¥' + (totalIncome - totalExpense).toLocaleString();
+      
+      // 残高カードの色更新
+      updateWalletCardColors();
+      
+      // 取引履歴更新
+      filterTransactions();
+    }
+    
+    function updateWalletCardColors() {
+      const balances = [
+        { id: 'cash-balance', balance: wallets['現金'] },
+        { id: 'wallet-balance', balance: wallets['財布'] },
+        { id: 'app-balance', balance: wallets['アプリ'] },
+        { id: 'ic-balance', balance: wallets['交通系IC'] }
+      ];
+      
+      balances.forEach(({ id, balance }) => {
+        const element = document.getElementById(id);
+        element.className = balance < 0 ? 'text-3xl font-bold text-red-200' : 'text-3xl font-bold';
+      });
+    }
+    
+    // モーダル関連
+    function openEditModal(walletName) {
+      currentEditWallet = walletName;
+      document.getElementById('modal-title').textContent = `${walletIcons[walletName]} ${walletName} の残高を編集`;
+      document.getElementById('modal-balance-input').value = wallets[walletName];
+      document.getElementById('edit-modal').classList.remove('hidden');
+      document.getElementById('edit-modal').classList.add('flex');
+    }
+    
+    function closeEditModal() {
+      document.getElementById('edit-modal').classList.add('hidden');
+      document.getElementById('edit-modal').classList.remove('flex');
+    }
+    
+    function updateBalance() {
+      const newBalance = parseFloat(document.getElementById('modal-balance-input').value) || 0;
+      wallets[currentEditWallet] = newBalance;
+      saveData();
+      updateDisplay();
+      closeEditModal();
+    }
+    
+    // デフォルト説明生成
+    function getDefaultDescription(type, wallet, transferTo = null) {
+      if (type === 'transfer') {
+        return `${walletIcons[wallet]}${wallet} から ${walletIcons[transferTo]}${transferTo} へ送金`;
+      } else {
+        const category = document.getElementById('category-select').value;
+        if (type === 'income') {
+          return `${categoryIcons[category] || '💰'}${category}`;
+        } else {
+          return `${categoryIcons[category] || '💸'}${category}`;
+        }
+      }
+    }
+    
+    // 取引関連
+    function toggleTransferFields() {
+      const type = document.getElementById('type-select').value;
+      const categoryField = document.getElementById('category-field');
+      const walletField = document.getElementById('wallet-field');
+      const transferFromField = document.getElementById('transfer-from-field');
+      const transferToField = document.getElementById('transfer-to-field');
+      
+      if (type === 'transfer') {
+        categoryField.style.display = 'none';
+        walletField.style.display = 'none';
+        transferFromField.style.display = 'block';
+        transferToField.style.display = 'block';
+        updateTransferToOptions();
+      } else {
+        categoryField.style.display = 'block';
+        walletField.style.display = 'block';
+        transferFromField.style.display = 'none';
+        transferToField.style.display = 'none';
+        
+        // カテゴリー更新
+        const categorySelect = document.getElementById('category-select');
+        categorySelect.innerHTML = '';
+        
+        const categories = type === 'income' 
+          ? [['給料', '💼'], ['ボーナス', '🎁'], ['その他収入', '💰']]
+          : [['食費', '🍽️'], ['住居費', '🏠'], ['交通費', '🚌'], ['光熱費', '💡'], 
+             ['通信費', '📞'], ['娯楽費', '🎮'], ['医療費', '🏥'], ['その他支出', '📦']];
+             
+        categories.forEach(([cat, icon]) => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = `${icon} ${cat}`;
+          categorySelect.appendChild(option);
+        });
+      }
+    }
+    
+    function updateTransferToOptions() {
+      const transferFrom = document.getElementById('transfer-from-select').value;
+      const transferToSelect = document.getElementById('transfer-to-select');
+      
+      // 送金先の選択肢を更新（送金元以外のウォレット）
+      const allWallets = [
+        ['現金', '💵'],
+        ['財布', '👛'],
+        ['アプリ', '📱'],
+        ['交通系IC', '🚇']
+      ];
+      
+      transferToSelect.innerHTML = '';
+      
+      allWallets.forEach(([wallet, icon]) => {
+        if (wallet !== transferFrom) {
+          const option = document.createElement('option');
+          option.value = wallet;
+          option.textContent = `${icon} ${wallet}`;
+          transferToSelect.appendChild(option);
+        }
+      });
+    }
+    
+    function addTransaction() {
+      const date = document.getElementById('date-input').value;
+      const description = document.getElementById('description-input').value;
+      const amount = parseFloat(document.getElementById('amount-input').value);
+      const type = document.getElementById('type-select').value;
+      
+      if (!date || !amount || amount <= 0) {
+        alert('日付と金額は必須です');
+        return;
+      }
+      
+      let wallet, transferTo;
+      
+      if (type === 'transfer') {
+        wallet = document.getElementById('transfer-from-select').value;
+        transferTo = document.getElementById('transfer-to-select').value;
+        
+        if (wallet === transferTo) {
+          alert('送金元と送金先が同じです');
+          return;
+        }
+      } else {
+        wallet = document.getElementById('wallet-select').value;
+      }
+      
+      const transaction = {
+        id: Date.now(),
+        date,
+        description: description || getDefaultDescription(type, wallet, transferTo),
+        amount,
+        type,
+        wallet
+      };
+      
+      if (type === 'transfer') {
+        transaction.transferTo = transferTo;
+        transaction.category = '送金';
+        
+        wallets[wallet] -= amount;
+        wallets[transferTo] += amount;
+      } else {
+        transaction.category = document.getElementById('category-select').value;
+        
+        if (type === 'income') {
+          wallets[wallet] += amount;
+        } else {
+          wallets[wallet] -= amount;
+        }
+      }
+      
+      transactions.unshift(transaction);
+      saveData();
+      updateDisplay();
+      
+      // フォームリセット
+      document.getElementById('description-input').value = '';
+      document.getElementById('amount-input').value = '';
+    }
+    
+    function deleteTransaction(id) {
+      const transaction = transactions.find(t => t.id === id);
+      
+      if (transaction.type === 'income') {
+        wallets[transaction.wallet] -= transaction.amount;
+      } else if (transaction.type === 'expense') {
+        wallets[transaction.wallet] += transaction.amount;
+      } else if (transaction.type === 'transfer') {
+        wallets[transaction.wallet] += transaction.amount;
+        wallets[transaction.transferTo] -= transaction.amount;
+      }
+      
+      transactions = transactions.filter(t => t.id !== id);
+      saveData();
+      updateDisplay();
+    }
+    
+    function filterTransactions() {
+      const typeFilter = document.getElementById('filter-type').value;
+      const walletFilter = document.getElementById('filter-wallet').value;
+      
+      let filtered = [...transactions];
+      
+      if (typeFilter !== 'all') {
+        filtered = filtered.filter(t => t.type === typeFilter);
+      }
+      
+      if (walletFilter !== 'all') {
+        filtered = filtered.filter(t => 
+          t.wallet === walletFilter || 
+          (t.type === 'transfer' && t.transferTo === walletFilter)
+        );
+      }
+      
+      updateTransactionsList(filtered);
+    }
+    
+    function updateTransactionsList(filteredTransactions = transactions) {
+      const container = document.getElementById('transactions-list');
+      
+      if (filteredTransactions.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-gray-500 py-8">
+            <span class="text-4xl">📝</span>
+            <p class="mt-2">取引データがありません</p>
+            <p class="text-sm">上のフォームから取引を追加してください</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '';
+      filteredTransactions.forEach(t => {
+        const icon = categoryIcons[t.category] || '📦';
+        const typeClass = `transaction-${t.type}`;
+        const colorClass = t.type === 'income' ? 'text-green-500' : t.type === 'expense' ? 'text-red-500' : 'text-blue-500';
+        const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '-' : '';
+        const walletDisplay = t.type === 'transfer' 
+          ? `${walletIcons[t.wallet]} ${t.wallet} → ${walletIcons[t.transferTo]} ${t.transferTo}`
+          : `${walletIcons[t.wallet]} ${t.wallet}`;
+        
+        html += `
+          <div class="transaction-card ${typeClass} bg-gray-50 p-4 rounded-lg">
+            <div class="flex justify-between items-start">
+              <div class="flex-1">
+                <div class="flex items-center mb-2">
+                  <span class="text-xl mr-2">${icon}</span>
+                  <h4 class="font-semibold text-gray-800">${t.description}</h4>
+                </div>
+                <div class="text-sm text-gray-600 space-y-1">
+                  <p>📅 ${t.date}</p>
+                  <p>🏷️ ${t.category}</p>
+                  <p>👛 ${walletDisplay}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-xl font-bold ${colorClass} mb-2">
+                  ${sign}¥${t.amount.toLocaleString()}
+                </p>
+                <button onclick="deleteTransaction(${t.id})" class="text-red-400 hover:text-red-600 text-sm">
+                  🗑️ 削除
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    // 初期化
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('date-input').value = new Date().toISOString().slice(0, 10);
+      loadData();
+    });
+  </script>
+</body>
+</html>
